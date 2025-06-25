@@ -136,9 +136,59 @@ RUN make clean && make ${machine} && cp ${machine} /usr/local/bin/
 ################################################################################
 FROM machine as program
 
-ARG src="tutorial"
-ARG compile_options="--field=64"
-RUN ./compile.py ${compile_options} ${src}
-RUN mkdir -p Player-Data \
-        && echo 1 2 3 4 > Player-Data/Input-P0-0 \
-        && echo 1 2 3 4 > Player-Data/Input-P1-0
+ARG src="anonymous_inclusion_iterative"
+# # ARG compile_options="--field=64"
+# RUN ./compile.py ${compile_options} ${src}
+# RUN mkdir -p Player-Data \
+#         && echo 1 2 3 4 > Player-Data/Input-P0-0 \
+#         && echo 1 2 3 4 > Player-Data/Input-P1-0
+
+# 1. Add your NEW MPC script and Python helper scripts
+ADD Programs/Source/anonymous_inclusion_iterative.mpc Programs/Source/
+ADD anon/generate_mempool.py ./
+ADD anon/generate_inputs.py ./
+ADD anon/prepare_iteration_inputs.py ./
+ADD anon/run_iterative_workflow.py ./
+ADD anon/parse_log.py ./
+
+RUN chmod +x ./generate_mempool.py \
+             ./generate_inputs.py \
+             ./prepare_iteration_inputs.py \
+             ./run_iterative_workflow.py \
+             ./parse_log.py
+
+# 2. Setup Configuration parameters
+ARG NUM_PARTIES_ARG=4
+ARG TRANSACTION_SPACE_BITS_ARG=40
+ARG BRANCH_FACTOR_LOG2_ARG=2
+ARG MIN_VOTES_THRESHOLD_ARG=10
+ARG MEMPOOL_SIZE_ARG=100
+ARG VOTES_PER_PARTY_ARG=100
+
+# loaded for compiling the MPC script
+ENV NUM_PARTIES=${NUM_PARTIES_ARG} 
+ENV TRANSACTION_SPACE_BITS=${TRANSACTION_SPACE_BITS_ARG}
+# loaded for compiling the MPC script
+ENV BRANCH_FACTOR_LOG2=${BRANCH_FACTOR_LOG2_ARG} 
+ENV MIN_VOTES_THRESHOLD=${MIN_VOTES_THRESHOLD_ARG}
+# loaded for compiling the MPC script
+ENV MEMPOOL_SIZE=${MEMPOOL_SIZE_ARG} 
+ENV VOTES_PER_PARTY=${VOTES_PER_PARTY_ARG}
+ENV MAX_PREFIX_SLOTS=${MEMPOOL_SIZE_ARG}
+ENV PLAYERS=${NUM_PARTIES}
+
+# 3. Compile the MPC script (once)
+# The .mpc script now reads all its config from ENV variables.
+# NUM_PARTIES is also read from ENV by the .mpc script's compile-time Python.
+
+RUN ./compile.py anonymous_inclusion_iterative.mpc ${NUM_PARTIES}
+
+# 4. Setup SSL (if needed for the protocol, e.g., some *-party.x require it)
+# RUN Scripts/setup-ssl.sh ${NUM_PARTIES}
+
+# 5. Execute the entire iterative workflow using the Python orchestrator
+RUN python3 ./run_iterative_workflow.py mascot
+
+# --- End of setup for Iterative Anonymous Inclusion ---
+
+CMD ["bash"]
