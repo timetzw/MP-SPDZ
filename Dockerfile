@@ -173,30 +173,9 @@ RUN make Fake-Offline.x && cp Fake-Offline.x /usr/local/bin/
 ################################################################################
 FROM machine as program
 
-# ADD anon/dot.mpc Programs/Source/
-# ADD anon/run*.sh ./
-# RUN make shamir-party.x && cp shamir-party.x /usr/local/bin/
-
-# RUN ./compile.py dot 100000
-# RUN ./compile.py -DB 32 dot 100000 B
-
-# RUN Scripts/setup-ssl.sh
-# RUN seq 100000 > Player-Data/Input-P0-0
-# RUN seq 100000 > Player-Data/Input-P1-0
-
-
-# RUN apt-get update && apt-get install -y iproute2
-# RUN apt-get install -y time
-# RUN bash run-shamir.sh
-
 COPY anon/ ./anon/
 
 ARG src="anonymous_inclusion_iterative"
-# # ARG compile_options="--field=64"
-# RUN ./compile.py ${compile_options} ${src}
-# RUN mkdir -p Player-Data \
-#         && echo 1 2 3 4 > Player-Data/Input-P0-0 \
-#         && echo 1 2 3 4 > Player-Data/Input-P1-0
 
 # 1. Add your NEW MPC script and Python helper scripts
 ADD Programs/Source/anonymous_inclusion_iterative.mpc Programs/Source/
@@ -240,7 +219,7 @@ RUN ./compile.py anonymous_inclusion_iterative.mpc ${NUM_PARTIES}
 # RUN Scripts/setup-ssl.sh ${NUM_PARTIES}
 
 # 5. Execute the entire iterative workflow using the Python orchestrator
-# RUN python3 ./run_iterative_workflow.py mascot
+RUN python3 ./run_iterative_workflow.py mascot
 
 # --- End of setup for Iterative Anonymous Inclusion ---
 

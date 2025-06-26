@@ -173,7 +173,7 @@ def execute_mpc_computation(num_parties, program_base, iteration_level, protocol
         print(f"CRITICAL: MPC script '{script_path}' not found.")
         sys.exit(1)
 
-    cmd = [script_path, '-b', '100', full_program_name]
+    cmd = [script_path, '-F', full_program_name]
     # cmd = [script_path, full_program_name]
     print(f"Orchestrator: Current cmd: {cmd}")
     print(f"Orchestrator: Running MPC via '{' '.join(cmd)}'")

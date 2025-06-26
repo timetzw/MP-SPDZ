@@ -52,24 +52,17 @@ print_ln("RUNTIME_INFO: Processing %s active prefixes for this iteration.", cint
 sint_global_counts = sint.Array(MAX_PREFIX_SLOTS)
 sint_global_counts.assign_all(sint(0))
 
-start_timer(1)
+
+print_ln("--- Iteration Results ---")
 # The loop now iterates exactly `cint_num_active_prefixes` times.
-@for_range(cint_num_active_prefixes)
+@for_range_parallel(16, cint_num_active_prefixes)
 def _(k_slot_idx):
     # For each active slot, read the next secret input from each party and sum them.
     for p_party_idx in range(NUM_PARTIES):
         sint_party_k_slot_count = sint.get_input_from(p_party_idx)
         sint_global_counts[k_slot_idx] += sint_party_k_slot_count
-
-stop_timer(1)
-# 3. Reveal the results for the active prefixes.
-print_ln("--- Iteration Results ---")
-
-@for_range(cint_num_active_prefixes)
-def _(k_slot_idx):
-    # The output is simple: the index of the prefix and its total vote count.
     print_ln("RAW_ITERATION_RESULT: SlotIndex=%s GlobalVotes=%s",
-             k_slot_idx,
-             sint_global_counts[k_slot_idx].reveal())
+            k_slot_idx,
+            sint_global_counts[k_slot_idx].reveal())
 
 print_ln("--- MPC Summation Complete ---")
