@@ -62,7 +62,43 @@ WORKDIR $MP_SPDZ_HOME
 
 RUN pip install --upgrade pip ipython
 
-COPY . .
+# Copy top-level files
+COPY Makefile .
+COPY compile.py .
+COPY CONFIG .
+COPY setup.py .
+COPY License.txt .
+COPY README.md .
+COPY CHANGELOG.md .
+COPY .gitignore .
+COPY .gitmodules .
+COPY .readthedocs.yaml .
+COPY azure-pipelines.yml .
+
+# Copy folders
+COPY .github/ .github/
+COPY bin/ bin/
+COPY BMR/ BMR/
+COPY Compiler/ Compiler/
+COPY deps/ deps/
+COPY doc/ doc/
+COPY ECDSA/ ECDSA/
+COPY ExternalIO/ ExternalIO/
+COPY FHE/ FHE/
+COPY FHEOffline/ FHEOffline/
+COPY GC/ GC/
+COPY Machines/ Machines/
+COPY Math/ Math/
+COPY Networking/ Networking/
+COPY OT/ OT/
+COPY Processor/ Processor/
+# COPY Programs/ Programs/
+COPY Protocols/ Protocols/
+COPY Scripts/ Scripts/
+COPY Tools/ Tools/
+COPY Utils/ Utils/
+COPY Yao/ Yao/
+
 
 ARG arch=
 ARG cxx=clang++-11
@@ -109,7 +145,8 @@ ARG gfp_mod_sz=2
 RUN echo "MOD = -DGFP_MOD_SZ=${gfp_mod_sz}" >> CONFIG.mine
 
 RUN make clean && make ${machine} && cp ${machine} /usr/local/bin/
-
+RUN echo MY_CFLAGS += -DINSECURE >> CONFIG.mine
+RUN make Fake-Offline.x && cp Fake-Offline.x /usr/local/bin/
 
 ################################################################################
 # This is the default stage. Use it to compile a high-level program.           #
@@ -136,6 +173,24 @@ RUN make clean && make ${machine} && cp ${machine} /usr/local/bin/
 ################################################################################
 FROM machine as program
 
+# ADD anon/dot.mpc Programs/Source/
+# ADD anon/run*.sh ./
+# RUN make shamir-party.x && cp shamir-party.x /usr/local/bin/
+
+# RUN ./compile.py dot 100000
+# RUN ./compile.py -DB 32 dot 100000 B
+
+# RUN Scripts/setup-ssl.sh
+# RUN seq 100000 > Player-Data/Input-P0-0
+# RUN seq 100000 > Player-Data/Input-P1-0
+
+
+# RUN apt-get update && apt-get install -y iproute2
+# RUN apt-get install -y time
+# RUN bash run-shamir.sh
+
+COPY anon/ ./anon/
+
 ARG src="anonymous_inclusion_iterative"
 # # ARG compile_options="--field=64"
 # RUN ./compile.py ${compile_options} ${src}
@@ -145,11 +200,7 @@ ARG src="anonymous_inclusion_iterative"
 
 # 1. Add your NEW MPC script and Python helper scripts
 ADD Programs/Source/anonymous_inclusion_iterative.mpc Programs/Source/
-ADD anon/generate_mempool.py ./
-ADD anon/generate_inputs.py ./
-ADD anon/prepare_iteration_inputs.py ./
-ADD anon/run_iterative_workflow.py ./
-ADD anon/parse_log.py ./
+COPY anon/*.py ./
 
 RUN chmod +x ./generate_mempool.py \
              ./generate_inputs.py \
@@ -158,7 +209,7 @@ RUN chmod +x ./generate_mempool.py \
              ./parse_log.py
 
 # 2. Setup Configuration parameters
-ARG NUM_PARTIES_ARG=4
+ARG NUM_PARTIES_ARG=16
 ARG TRANSACTION_SPACE_BITS_ARG=40
 ARG BRANCH_FACTOR_LOG2_ARG=2
 ARG MIN_VOTES_THRESHOLD_ARG=10
@@ -177,6 +228,8 @@ ENV VOTES_PER_PARTY=${VOTES_PER_PARTY_ARG}
 ENV MAX_PREFIX_SLOTS=${MEMPOOL_SIZE_ARG}
 ENV PLAYERS=${NUM_PARTIES}
 
+RUN Scripts/setup-online.sh ${NUM_PARTIES}
+
 # 3. Compile the MPC script (once)
 # The .mpc script now reads all its config from ENV variables.
 # NUM_PARTIES is also read from ENV by the .mpc script's compile-time Python.
@@ -187,7 +240,7 @@ RUN ./compile.py anonymous_inclusion_iterative.mpc ${NUM_PARTIES}
 # RUN Scripts/setup-ssl.sh ${NUM_PARTIES}
 
 # 5. Execute the entire iterative workflow using the Python orchestrator
-RUN python3 ./run_iterative_workflow.py mascot
+# RUN python3 ./run_iterative_workflow.py mascot
 
 # --- End of setup for Iterative Anonymous Inclusion ---
 
